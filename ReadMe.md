@@ -13,17 +13,37 @@ We calculate eight angles based on the specified pairs of the chosen vectors. Th
 
 Based on the angles several features are being calculated:
 1) costMean (The mean of eight angles)
- ![MeanCostFormula (1)](https://user-images.githubusercontent.com/65034169/190630585-d569cd42-1010-4fea-8f01-16a5c0644bfc.PNG)
+
+
+
+![MeanCostFormula (1)](https://user-images.githubusercontent.com/65034169/190630585-d569cd42-1010-4fea-8f01-16a5c0644bfc.PNG)
+
+
+
 ![MeanCost](https://user-images.githubusercontent.com/65034169/190630669-eda6cff9-5c6f-4d9b-85af-144c02caa5f7.PNG)
 
 
 2) divisonCost (Each angle is divided on by its previous frame’s same angle, and then all resulted angles are summed up)
+
+
+
 ![DivisionCostFormula](https://user-images.githubusercontent.com/65034169/190630759-fd6e510c-bfd8-4c9b-bd1e-56a792054a7f.PNG)
+
+
+
+
 ![DivisionCost](https://user-images.githubusercontent.com/65034169/190630781-6f829560-43e8-4b6a-b692-2492a7d7a62d.PNG)
+
+
 
 3) differenceMean (The absolute value of the difference between each angle of previous and current angles are taken, then mean of eight differences are calculated and multiplied by the current fps. It represents a number close to the derivative)
 
+
+
 ![DifferenceMeanCostFormula](https://user-images.githubusercontent.com/65034169/190630859-b6ee4b7c-9080-4292-88a3-5ab14c198c8f.PNG)
+
+
+
 ![DifferenceMeanCost](https://user-images.githubusercontent.com/65034169/190630888-53e694ca-4512-4b74-9e4f-02f09859be4c.PNG)
 
 
@@ -34,7 +54,13 @@ Based on the angles several features are being calculated:
 ![DifferenceSumCost](https://user-images.githubusercontent.com/65034169/190631154-23f76225-bbc5-4688-b540-2221acbde84e.PNG)
 
 5) meanDifference (The means of eight angles of previous and current frames are calculated and absolute value of difference of those means is taken)
+
+
+
 ![MeanDifferenceCostFormula](https://user-images.githubusercontent.com/65034169/190631237-c6fd4cc2-e400-4141-b744-f1f460db7ed0.PNG)
+
+
+
 ![MeanDifferenceCost](https://user-images.githubusercontent.com/65034169/190631262-29f72275-da5b-49d0-9cd6-5e01714879ac.PNG)
 
 
