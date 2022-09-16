@@ -75,9 +75,15 @@ Since falling is a sequential activity and it may last a number of frames. For t
 
 After getting one number from each cache as the main cost of the current frame, threshold is applied to the costs, and if they extend the threshold then a notification shows fall activity. Moreover, we remove too big and too small costs by bounding the result in [clip\_from, clip\_to] interval using the numpy clip function, which is the acceptable interval where the cost value can be.
 Optimal threshold and bounding interval can be found using grid search on labeled training data using grid search.
+ 
+
   
   
 ![Demonstration](https://user-images.githubusercontent.com/65034169/190631807-5f454de9-8e22-4ba1-9b74-f96fcb44ed78.gif)
+
+
+
+If you want to test it, you need to run the following code in your cmd:py FallDetection.py -video video_name -m method --save/--no--save
 
 
   
