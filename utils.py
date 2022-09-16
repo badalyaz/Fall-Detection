@@ -422,9 +422,6 @@ class FeatureExtractor():
         camera_video.set(3,1280)   #Width of the video
         
         camera_video.set(4,960)    #Height of the video
-        print('---------------------')
-        print(camera_video.get(3) + 360)
-        print(camera_video.get(4))
         
         if save:
         
@@ -584,9 +581,8 @@ class FeatureExtractor():
                     out.write(merged)
 
                 cv2.imshow('plot', merged)
-                
-                print(merged.shape)
-                                
+
+
             frame_index += 1   #Add 1 to frame index
 
             k = cv2.waitKey(1) & 0xff
