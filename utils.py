@@ -187,8 +187,9 @@ class FeatureExtractor():
         Takes as input the list of the keypoints for the current frame
         Returns corrected list of keypoints with NaNs instead of negative values
         """
+        if keypoints != []:
         
-        keypoints = np.where(keypoints < 0, np.nan, keypoints)    #Where the points is negative replace it with NaN
+            keypoints = np.where(keypoints < 0, np.nan, keypoints)    #Where the points is negative replace it with NaN
         
         return keypoints
         
@@ -200,14 +201,15 @@ class FeatureExtractor():
         Returns the list of keypoints with added extra points
 
         """
-           
-        torso_up = keypoints[self.torso_up].mean(axis = 1)    #Get the midpoint of the shoulders using the mean of left and right shoulders
-        
-        torso_down = keypoints[self.torso_down].mean(axis=1)    #Get the midpoint of the hips using the mean of left and right shoulders
-        
-        head_coordinate = np.nanmean(keypoints[:5], axis = 0)   #Get the mean of the head coordinate as one points instead of the five points
-               
-        keypoints = np.vstack((keypoints, torso_up, torso_down, head_coordinate, self.vertical_coordinates))    #Stack all the points with each other
+        if keypoints != []:
+            
+            torso_up = keypoints[self.torso_up].mean(axis = 1)    #Get the midpoint of the shoulders using the mean of left and right shoulders
+
+            torso_down = keypoints[self.torso_down].mean(axis=1)    #Get the midpoint of the hips using the mean of left and right shoulders
+
+            head_coordinate = np.nanmean(keypoints[:5], axis = 0)   #Get the mean of the head coordinate as one points instead of the five points
+
+            keypoints = np.vstack((keypoints, torso_up, torso_down, head_coordinate, self.vertical_coordinates))    #Stack all the points with each other
                 
         return keypoints
      
@@ -255,7 +257,7 @@ class FeatureExtractor():
             
         elif cost_method == 'Mean':
             
-            self.threshold = 58
+            self.threshold = 37
             
         elif cost_method == 'Division':
             
@@ -299,8 +301,6 @@ class FeatureExtractor():
         step_size = video_fps // self.fps    #Step size of the frames (If 5, we consider 0th frame, then fifth, then tenth, etc.)
         
         self.costlist = []  #List for storing costs
-                
-        self.threshold = self.chooseThreshold(cost_method)  #Get the threshold based on the cost_method
         
         cache = []   #List for storing the cache of the costs
                         
@@ -366,12 +366,10 @@ class FeatureExtractor():
                     
                 else:
                     
-                    return 'Not Valid Method!! Use "DifferenceMean", "MeanDifference", "DifferenceSum", "Division" or "Mean" as cost method!!!!'
+                    print('Not Valid Method!! Use "DifferenceMean", "MeanDifference", "DifferenceSum", "Division" or "Mean" as cost method!!!!')
+                    return False
                 
                 end = time.time()
-                
-                print('Cost calculated: ' + str(cost))
-                print('Time of calculation: ' + str(end-start))
                 
                 if np.isnan(cost):  #If cost is NaN, take previous cost instead of NaN
                     
@@ -383,14 +381,6 @@ class FeatureExtractor():
 
                     weighted_cost = np.dot(self.cache_weights, cache) / 6    #Calculate the cost based on previous 6 costs
 
-                    if weighted_cost >= self.threshold: #If cost is higher than threshold
-
-                        print('Fall')
-                        
-                    else:
-
-                        print('Not Fall')
-
                     cache = cache[1:]   #Remove the last element of the cache to append the current cost
 
                     self.costlist.append(weighted_cost) #Append the weighted cost to the cost list
@@ -400,8 +390,6 @@ class FeatureExtractor():
                 previous_cost = cost    #Assign current cost to the previous cost for the next frame
             
             frame_index += 1   #Add 1 to frame index
-            
-            print('Frame: ' + str(frame_index))
                 
             k = cv2.waitKey(1) & 0xff
 
@@ -414,24 +402,291 @@ class FeatureExtractor():
         cv2.destroyAllWindows()
 
         return np.array(self.costlist)
+    
 
+    def realTimeVideo(self, video, cost_method, save = False):
+
+        """
+        Function processVideo
+        Used for computing the cost for the entire video
+        Takes as input the video and cost method
+        Returns the list of the costs computed
+
+
+        """
         
+        plot = plt.figure(figsize=(5,5))
+                        
+        camera_video = cv2.VideoCapture(video)    #Capture the video
+                
+        camera_video.set(3,1280)   #Width of the video
+        
+        camera_video.set(4,960)    #Height of the video
+        print('---------------------')
+        print(camera_video.get(3) + 360)
+        print(camera_video.get(4))
+        
+        if save:
+        
+            fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+
+            out = cv2.VideoWriter('FallDetection.mp4', fourcc, 6.0, (int(camera_video.get(3))+500, 500))
+
+        video_fps = round(camera_video.get(cv2.CAP_PROP_FPS))  #Get the fps of the video
+                        
+        if video_fps == 30.0:   #If 30 fps
+            
+            pass
+            
+        else:
+            
+            return 'Video is not 30 FPS'    #If not 30 fps terminate the function
+        
+        frame_index = 0    #Frame Index
+        
+        previous_keypoints = 0   #Variable for storing the previous keypoints
+        
+        previous_cost = 0   #Variable for storing the previous cost
+        
+        step_size = video_fps // self.fps    #Step size of the frames (If 5, we consider 0th frame, then fifth, then tenth, etc.)
+        
+        self.costlist = []  #List for storing costs
+        
+        cache = []   #List for storing the cache of the costs
+                        
+        while camera_video.isOpened():  #While video is running 
+                                    
+            condition, frame = camera_video.read()  #Read every frame
+            
+            plot.canvas.draw()
+                        
+            if condition is False:  #If no frames left break the loop
+                
+                break
+                
+            if frame_index % step_size == 0:    #If the frame_index is divisible by step_size
+                                
+                current_keypoints = self.keypoints.detectPoints(frame)  #Find the keypoints for the current frame
+            
+                if frame_index == 0:    #If frame index is 0
+
+                    previous_keypoints = current_keypoints  #Make the previous keypoints the current one
+                    
+                    previous_cost = 0   #Make the previous cost 0
+
+                    frame_index += 1   #Add 1 to frame_index and continue
+
+                    continue    
+                      
+                previous_keypoints = self.collectData(previous_keypoints)    #Handle missing values and add extra ones for previous frame
+        
+                current_keypoints = self.collectData(current_keypoints)  #Handle missing values and add extra ones for current frame
+                
+                vector1_pairs = np.array(previous_keypoints[self.vector_indices][self.pair_indices])    #Get vector pairs for previous keypoints
+
+                vector2_pairs = np.array(current_keypoints[self.vector_indices][self.pair_indices])     #Get vector pairs for current keypoints
+
+                vector1_angles = self.angleCalculation(vector1_pairs)*self.angle_weights    #Calculate the angles for previous frame and multiply with weights
+
+                vector2_angles = self.angleCalculation(vector2_pairs)*self.angle_weights    #Calculate the angles for current frame and multiply with weights
+                                
+                if np.count_nonzero(np.isnan(vector1_angles)) >= 6 or np.count_nonzero(np.isnan(vector2_angles)) >= 6:  #If more than six vectors are NaNs drop the frame and continue
+                    
+                    continue
+                    
+                start = time.time() #Calculate the time for the cost computation
+                                    
+                if cost_method == 'DifferenceMean':
+                
+                    cost = self.differenceMean(vector1_angles, vector2_angles)
+                
+                elif cost_method == 'DifferenceSum':
+                    
+                    cost = self.differenceSum(vector1_angles, vector2_angles)
+                    
+                elif cost_method == 'Division':
+                
+                    cost = self.divisionCost(vector1_angles, vector2_angles)
+                    
+                elif cost_method == 'Mean':
+                
+                    cost = self.costMean(vector2_angles)
+                    
+                elif cost_method == 'MeanDifference':
+                    
+                    cost = self.meanDifference(vector1_angles, vector2_angles)
+                    
+                else:
+                    
+                    print('Not Valid Method!! Use "DifferenceMean", "MeanDifference", "DifferenceSum", "Division" or "Mean" as cost method!!!!')
+                    return False
+                
+                end = time.time()
+                
+                if np.isnan(cost):  #If cost is NaN, take previous cost instead of NaN
+                    
+                    cost = previous_cost
+                
+                cache.append(cost)  #Append the cost to cache
+                            
+                if frame_index >= step_size*6:  #If the cache contains more than 5 elements
+
+                    weighted_cost = np.dot(self.cache_weights, cache) / 6    #Calculate the cost based on previous 6 costs
+
+                    cache = cache[1:]   #Remove the last element of the cache to append the current cost
+
+                    self.costlist.append(weighted_cost) #Append the weighted cost to the cost list
+                                                                                                                                             
+                previous_keypoints = current_keypoints  #Assign the current keypoints to the previous keypoints for the next frame
+                
+                previous_cost = cost    #Assign current cost to the previous cost for the next frame
+                
+                threshold = self.chooseThreshold(cost_method)
+            
+                cv2.putText(frame, 'Frame: ' + str(frame_index/5), (0, 150), cv2.FONT_HERSHEY_SIMPLEX,1, (0,0,255), 2, cv2.LINE_AA)
+                
+                plt.clf()    #Clear the plot
+
+                plt.xlim(frame_index/5-15,frame_index/5+15)    #Define the limit of x axis
+
+                plt.ylim(0,self.threshold+50)    #Define the limit of y axis
+
+                plt.plot(self.costlist) #Plot the costlist
+
+                x_cord = [frame_index/5-15,frame_index/5+15]    #The threshold x cord
+
+                y_cord = [threshold, threshold]    #The threshold y cord
+
+                plt.plot(x_cord, y_cord, color='red')    #Plot the threshold line
+
+                plot.canvas.flush_events()   #Clears the old figure
+
+                img = np.fromstring(plot.canvas.tostring_rgb(), dtype=np.uint8, sep='')    #Used to convert plot to image
+
+                img  = img.reshape(plot.canvas.get_width_height()[::-1] + (3,))    #Used to convert plot to image
+
+                img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)    #Convert the image to BGR
+
+                h1, w1 = frame.shape[:2]
+
+                h2, w2 = img.shape[:2]
+
+                merged = np.zeros((max(h1, h2), w1+w2,3), dtype=np.uint8)
+
+                merged[:,:] = (255,255,255)
+
+                merged[:h1, :w1,:3] = frame
+
+                merged[:h2, w1:w1+w2,:3] = img
+                
+                if save:
+                
+                    out.write(merged)
+
+                cv2.imshow('plot', merged)
+                
+                print(merged.shape)
+                                
+            frame_index += 1   #Add 1 to frame index
+
+            k = cv2.waitKey(1) & 0xff
+
+            if(k == 27):    #If esc is pressed break
+                
+                break
+                
+        camera_video.release()
+        
+        if save:
+            
+            out.release()
+        
+        cv2.destroyAllWindows()
+        
+    def plot(self, axis, cost, costmethod, fall_start, fall_end):
+    
+        """
+        Function plot
+        Used for plotting the cost list
+        Takes as input the cost, starting frame of the fall and ending frame
+        Returns the plot
+
+        """
+        threshold = self.chooseThreshold(costmethod)
+        
+        axis.plot(cost, label = 'cost')
+
+        axis.set_title('Cost method is: ' + costmethod)
+
+        axis.axhline(y = threshold, label = 'Threshold', color='black')
+
+        axis.axvspan(fall_start, fall_end, alpha=0.25, color='red', label = 'Fall Frames')   
+
+        axis.legend(loc="upper right")
+
+    def separatePlot(self, cost, costmethod, save = False):
+    
+        """
+        Function plot
+        Used for plotting the cost list
+        Takes as input the cost, starting frame of the fall and ending frame
+        Returns the plot
+
+        """
+        threshold = self.chooseThreshold(costmethod)
+        
+        plot = plt.figure(figsize=(10,10))
+
+        plt.plot(cost, label = 'cost')
+
+        plt.title('Cost method is: ' + costmethod)
+
+        # plt.axhline(y = threshold, label = 'Threshold', color='black')
+
+        plt.legend(loc="upper right")
+
+        plot.canvas.draw()
+
+        img = np.fromstring(plot.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+        
+        img  = img.reshape(plot.canvas.get_width_height()[::-1] + (3,))
+
+        img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
+
+        if save is True:
+
+            cv2.imwrite('FallDetection.png', img)
+
+        cv2.imshow("plot",img)      
+
+        k = cv2.waitKey(10000) & 0xff
+
+        if(k == 27):    #If esc is pressed break
+            
+            cv2.destroyAllWindows()
+
+
 
 if __name__ == '__main__':
     
     vid = '..//Data//Fall3.mp4'
+    
     featureextractor = FeatureExtractor()
     
-    cost = featureextractor.processVideo(vid, 'DifferenceMean')
+    cost_method = 'DifferenceMean'
+    
+    cost = featureextractor.processVideo(vid, cost_method)
     
     plot = plt.figure(figsize=(5,5))
     
     plt.plot(cost, label = 'cost')
-    plt.axhline(y= featureextractor.threshold, label = 'Threshold', color='black')
+    
+    plt.axhline(y= featureextractor.chooseThreshold(cost_method), label = 'Threshold', color='black')
     
     plt.axvspan(17-6, 25-6, alpha=0.25, color='red')
     
     plt.legend(loc="upper left")
+    
     plt.show()
 
 
